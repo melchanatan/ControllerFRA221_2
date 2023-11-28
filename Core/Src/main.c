@@ -47,6 +47,25 @@ DAC_HandleTypeDef hdac1;
 UART_HandleTypeDef hlpuart1;
 
 /* USER CODE BEGIN PV */
+struct _ADC_tag
+{
+	ADC_ChannelConfTypeDef Config;
+	uint16_t data;
+};
+
+struct _ADC_tag ADC1_Channel =
+{
+	.Config.Channel = ADC_CHANNEL_1,
+	.Config.Rank = ADC_REGULAR_RANK_1,
+	.Config.SamplingTime = ADC_SAMPLETIME_640CYCLES_5,
+	.Config.SingleDiff = ADC_SINGLE_ENDED,
+	.Config.OffsetNumber = ADC_OFFSET_NONE,
+	.Config.Offset = 0,
+	.data = 0
+};
+
+uint16_t TenBit = 0;
+float mVUnit = 0;
 
 /* USER CODE END PV */
 
@@ -57,7 +76,7 @@ static void MX_LPUART1_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC1_Init(void);
 /* USER CODE BEGIN PFP */
-
+void ADC_Read_blocking();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -105,7 +124,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+	  ADC_Read_blocking();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -180,7 +199,7 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.Resolution = ADC_RESOLUTION_10B;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.GainCompensation = 0;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
@@ -361,6 +380,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void ADC_Read_blocking()
+{
+	static uint32_t TimeStamp = 0;
+	if( HAL_GetTick()<TimeStamp) return;
+
+	TimeStamp = HAL_GetTick()+500;
+	HAL_ADC_ConfigChannel(&hadc1, &ADC1_Channel.Config);
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1, 100);
+	ADC1_Channel.data = HAL_ADC_GetValue(&hadc1);
+	TenBit = (ADC1_Channel.data);
+	mVUnit = (ADC1_Channel.data)*3300/1024;
+
+	HAL_ADC_Stop(&hadc1);
+}
 
 /* USER CODE END 4 */
 
