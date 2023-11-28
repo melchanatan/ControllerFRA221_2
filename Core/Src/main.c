@@ -70,6 +70,9 @@ float mVUnit = 0;
 uint16_t DAC_Raw=0;
 float DAC_mV=0;
 
+float buffer_Raw = 0;
+uint16_t isPressed = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -101,7 +104,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+   HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -129,7 +132,14 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  DAC_Update();
+	  ADC_Read_blocking();
+	  isPressed = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13);
+	  if (isPressed == 1) {
+		  buffer_Raw = rawTenBit * 4;
+		  DAC_Raw = 100;
+		  DAC_Update();
+	  }
+//	  DAC_Update();
 //	  ADC_Read_blocking();
 
     /* USER CODE BEGIN 3 */
@@ -411,12 +421,7 @@ void DAC_Update()
 	if(HAL_GetTick()>timeStamp)
 	{
 		timeStamp = HAL_GetTick()+750;
-
-		if (DAC_Raw == 0 && DAC_mV != 0) {
-			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, DAC_mV/3.3*4096);
-		} else if (DAC_Raw != 0 && DAC_mV == 0) {
-			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, DAC_Raw);
-		}
+		HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, buffer_Raw);
 	}
 }
 
