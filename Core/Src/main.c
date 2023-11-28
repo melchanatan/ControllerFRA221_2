@@ -64,8 +64,11 @@ struct _ADC_tag ADC1_Channel =
 	.data = 0
 };
 
-uint16_t TenBit = 0;
+uint16_t rawTenBit = 0;
 float mVUnit = 0;
+
+uint16_t DAC_Raw=0;
+float DAC_mV=0;
 
 /* USER CODE END PV */
 
@@ -77,6 +80,7 @@ static void MX_ADC1_Init(void);
 static void MX_DAC1_Init(void);
 /* USER CODE BEGIN PFP */
 void ADC_Read_blocking();
+void DAC_Update();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -116,7 +120,8 @@ int main(void)
   MX_ADC1_Init();
   MX_DAC1_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -124,7 +129,9 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  ADC_Read_blocking();
+	  DAC_Update();
+//	  ADC_Read_blocking();
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -390,10 +397,27 @@ void ADC_Read_blocking()
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1, 100);
 	ADC1_Channel.data = HAL_ADC_GetValue(&hadc1);
-	TenBit = (ADC1_Channel.data);
+	rawTenBit = (ADC1_Channel.data);
 	mVUnit = (ADC1_Channel.data)*3300/1024;
 
 	HAL_ADC_Stop(&hadc1);
+}
+
+
+
+void DAC_Update()
+{
+	static uint32_t timeStamp = 0;
+	if(HAL_GetTick()>timeStamp)
+	{
+		timeStamp = HAL_GetTick()+750;
+
+		if (DAC_Raw == 0 && DAC_mV != 0) {
+			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, DAC_mV/3.3*4096);
+		} else if (DAC_Raw != 0 && DAC_mV == 0) {
+			HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, DAC_Raw);
+		}
+	}
 }
 
 /* USER CODE END 4 */
